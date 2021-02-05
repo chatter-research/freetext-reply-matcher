@@ -1,0 +1,20 @@
+# pycache files
+**/__pycache__
+#__pycache__/
+
+# Notebook checkpoint files
+.ipynb_checkpoints
+
+# Prediction Routine files
+src/prediction_routine/*.egg-info/
+src/prediction_routine/dist/
+
+# DB Credentials
+src/data/database.ini
+
+.DS_Store
+
+/data
+/models
+/ai-assets*.json
+/ai_assets*.json
