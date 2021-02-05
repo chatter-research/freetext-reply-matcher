@@ -1,0 +1,5 @@
+[core]
+    remote = myremote
+['remote "myremote"']
+    url = gs://chatter-research-dvc
+    credentialpath = ../ai_assets_google_service_account.json
