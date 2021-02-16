@@ -28,7 +28,11 @@ class Matcher():
         """
         Match the given query (string) against available choices (patterns).
         """
-        return process.extract(query=query, choices=self.choices, limit=limit)
+        return process.extract(
+            query=query,
+            choices=self.update_choices(query=query),
+            limit=limit
+        )
 
 
     def match_multiple(self, queries, limit=1):
@@ -44,6 +48,27 @@ class Matcher():
 
         """
         return [self.match_one(query=str(q), limit=limit) for q in queries]
+
+
+    def add_variant(self, choice_name, variant):
+        self.choices.get(choice_name).append(variant)
+
+
+    def choose_variant(self, query, variants):
+        """
+        Given the query string and the variants, this method returns the best
+        variant as a tuple of variant and score.
+        """
+        return process.extractOne(query=query, choices=variants)[0]
+
+
+    def update_choices(self, query):
+        """
+        Update the choices from {choice name: choices list} to {choice name: choice}
+        """
+        return {choice_name: self.choose_variant(query=query, variants=choices) \
+                if len(choices) > 1 else choices[0] \
+                for choice_name, choices in self.choices.items()}
 
 
     def filter(self, results):
