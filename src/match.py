@@ -4,15 +4,17 @@ from pprint import pprint
 
 
 class Matcher():
-    def __init__(self, choices, threshold=80):
+    def __init__(self, categories, threshold=80):
         """
-        choices:
-            List of true labels to match against
+        categories:
+            Dict of true labels to match against with category name as key and
+            list of different variants as value
         threshold:
             Float - the threshold score to use when matching`
 
         """
-        self.choices = choices
+        self.categories = categories
+        self.categories_reverse = self.reverse_map(self.categories)
         self.threshold = threshold
         self.queries = None
         self.results_list = None
@@ -26,56 +28,57 @@ class Matcher():
 
     def match_one(self, query, limit=1):
         """
-        Match the given query (string) against available choices (patterns).
+        Match the given query (string) against available categories
         """
-        return process.extract(
-            query=query,
-            choices=self.update_choices(query=query),
-            limit=limit
-        )
+        all_variants = [variant \
+                        for category, variants in self.categories.items() \
+                        for variant in variants]
+        variants_matched = process.extract(query=query, choices=all_variants,limit=limit)
+        # Map the variant back to the category
+        categories_matched = \
+        [(self.categories_reverse.get(variant_tuple[0]), variant_tuple[1]) \
+         for variant_tuple in variants_matched]
+        return categories_matched
 
 
     def match_multiple(self, queries, limit=1):
         """
-        Match the given list of queries against available choices.
-
-        queries:
-            List or numpy array object containing all strings to be matched
-        choices:
-            List of true labels to match against
-        limit:
-            Number of matches to return
-
+        Match the given list of queries against available categories
         """
         return [self.match_one(query=str(q), limit=limit) for q in queries]
 
 
-    def add_variant(self, choice_name, variant):
-        self.choices.get(choice_name).append(variant)
+    def add_variants(self, category: str, variants: list) -> list:
+        # Convert all variants to lowercase and remove leading and trailing spaces
+        variants = [i.strip().lower() for i in variants]
+        self.categories[category] = list(set(self.categories.get(category, []) + variants))
+        # Update reverse mapping
+        self.categories_reverse = self.reverse_map(self.categories)
 
 
-    def choose_variant(self, query, variants):
+    def remove_variants(self, category: str) -> None:
+        try:
+            del self.categories[category]
+            print(f'Category "{category}" removed')
+        except KeyError:
+            print(f'Category "{category}" doesn\'t exist')
+
+
+    def reverse_map(self, categories):
+        return {variant: category \
+                for category, variants in categories.items() \
+                for variant in variants}
+
+
+    def filter(self, results: list) -> list:
         """
-        Given the query string and the variants, this method returns the best
-        variant as a tuple of variant and score.
-        """
-        return process.extractOne(query=query, choices=variants)[0]
+        Filter the results based on threshold. "results" is a list of matches
+        for all queries, where each match is a list of tuples.
 
-
-    def update_choices(self, query):
-        """
-        Update the choices from {choice name: choices list} to {choice name: choice}
-        """
-        return {choice_name: self.choose_variant(query=query, variants=choices) \
-                if len(choices) > 1 else choices[0] \
-                for choice_name, choices in self.choices.items()}
-
-
-    def filter(self, results):
-        """
-        Filter the results based on threshold
         """
         #print(f'filtering using threshold: {self.threshold}')
+        # Use the best match for each query if the match score is greater than
+        # or equal to the threshold.
         return [i[0][0] if i[0][1] >= self.threshold else 'no_match' for i in results]
 
 
@@ -103,13 +106,15 @@ class Matcher():
         #print('done!')
         #print(f'no_match_ratio: {no_match_ratio}')
         print('-------------------Matching Report-------------------')
-        print(f'Using threshold of {self.threshold}')
-        print(f'{no_match_ratio:.2%} of the replies couldn\'t be matched ({no_match_bool.sum()}/{len(no_match_bool)}). Samples:')
+        print(f'--> {no_match_ratio:.2%} of the replies couldn\'t be matched ({no_match_bool.sum()}/{len(no_match_bool)})')
+        print(f'--> Using threshold of {self.threshold}')
         no_match_samples = np.array(self.queries)[no_match_bool]
         # When the number of no matches is smaller than the total number of
         # replies, use the total number of replies
         if len(no_match_samples) <= n:
             n = len(no_match_samples)
         samples_n = np.random.choice(no_match_samples, n, replace=False)
-        pprint(samples_n)
+        print(f'--> A random sample of {n} unmatched replies:\n')
+        #pprint(samples_n)
+        [print(i) for i in samples_n]
         print('-------------------End of Report-------------------')
