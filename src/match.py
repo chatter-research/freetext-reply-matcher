@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from fuzzywuzzy import process
 from pprint import pprint
 
@@ -118,3 +119,10 @@ class Matcher():
         #pprint(samples_n)
         [print(i) for i in samples_n]
         print('-------------------End of Report-------------------')
+
+
+    def get_results_df(self):
+        """
+        Get the matching stats for visualization in streamlit
+        """
+        return pd.DataFrame({'reply': self.queries, 'matched_category': self.results_list})
