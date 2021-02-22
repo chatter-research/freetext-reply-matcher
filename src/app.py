@@ -3,16 +3,67 @@ import pandas as pd
 import streamlit as st
 from match import Matcher
 
+
+def main():
+    # Prompt user to complete all steps
+    if (df is None) or (categories is None):
+        st.info('Please complete all steps on the left to start')
+    else:
+        df_result = do_matching(df, categories, threshold)
+        match_ratio, no_match_ratio = calculate_ratio(df_result)
+        st.success(f'Done matching! {match_ratio:.1%} replies matched, {no_match_ratio:.1%} unmatched.')
+        # Radio widget for filtering results
+        filter_selection = st.radio(
+            label='Filter results',
+            options=('Show all', 'Show matches only', 'Show unmatched only'),
+            index=2
+        )
+        if filter_selection == 'Show matches only':
+            df_show = df_result.query('matched_category!="no_match"')
+        elif filter_selection == 'Show unmatched only':
+            df_show = df_result.query('matched_category=="no_match"')
+        else:
+            df_show = df_result.copy()
+        if st.button('Shuffle results'):
+            df_show = df_show.sample(frac=1)
+        st.write(df_show)
+
+
 @st.cache
-def get_data(file):
+def get_df(file):
     if file:
         df = pd.read_csv(file)
-        return df.reply.values
+        # Filter out null values
+        df = df.loc[~df.reply.isnull(), :]
+        return df
     return None
 
+
+@st.cache
+def do_matching(df, categories, threshold):
+    matcher = Matcher(categories=categories, threshold=threshold)
+    matcher.run(queries=df.reply.values, limit=1)
+    # Create a new column for the matches
+    df_result = df.copy()
+    df_result['matched_category'] = matcher.results_list
+    df_result = df_result[['reply_id', 'reply', 'matched_category']]
+    return df_result
+
+
+def calculate_ratio(df_result):
+    # Calculate the match ratios
+    no_match_ratio = (df_result.matched_category=='no_match').mean()
+    match_ratio = 1 - no_match_ratio
+    return match_ratio, no_match_ratio
+
+
+# File uploader widget
+file = st.sidebar.file_uploader("STEP 1 - Upload the CSV file:")
+df = get_df(file)
+#st.write(f'df: {df}')
 # Threshold widget
 threshold = st.sidebar.slider(
-    label='Select the match score threshold:',
+    label='STEP 2 - Select the match score threshold:',
     min_value=50,
     max_value=100,
     value=80,
@@ -20,38 +71,15 @@ threshold = st.sidebar.slider(
 )
 
 # Input widget for categories
-default_categories = {'category_name': ['variant_1', 'variant_2']}
-
+#default_categories = {'category_name': ['variant_1', 'variant_2']}
 categories = st.sidebar.text_area(
-    label='Enter the categories:',
-    value=default_categories,
+    label='STEP 3 - Enter the categories:',
+    value=None,
     height=500
 )
 categories = ast.literal_eval(categories)
+#st.write(f'categories: {categories}')
 
-# File uploader widget
-file = st.sidebar.file_uploader("Upload the CSV to match:")
-strings_to_match = get_data(file)
 
-#if st.button('Start matching!'):
-@st.cache
-def do_matching():
-    matcher = Matcher(categories=categories, threshold=threshold)
-    results = matcher.run(queries=strings_to_match, limit=1)
-    df = matcher.get_results_df()
-    return matcher, df
-
-matcher, df = do_matching()
-
-filter_selection = st.radio(
-    label='Filter results',
-    options=('Show all', 'Show matches only', 'Show unmatched only')
-)
-if filter_selection == 'Show matches only':
-    df = df.query('matched_category!="no_match"')
-elif filter_selection == 'Show unmatched only':
-    df = df.query('matched_category=="no_match"')
-else:
-    pass
-st.write(df)
-st.success('Done matching!')
+if __name__ == "__main__":
+    main()

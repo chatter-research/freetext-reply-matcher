@@ -107,7 +107,7 @@ class Matcher():
         #print('done!')
         #print(f'no_match_ratio: {no_match_ratio}')
         print('-------------------Matching Report-------------------')
-        print(f'--> {no_match_ratio:.2%} of the replies couldn\'t be matched ({no_match_bool.sum()}/{len(no_match_bool)})')
+        print(f'--> {no_match_ratio:.2%} of the replies couldn\'t be matched')
         print(f'--> Using threshold of {self.threshold}')
         no_match_samples = np.array(self.queries)[no_match_bool]
         # When the number of no matches is smaller than the total number of
@@ -119,10 +119,3 @@ class Matcher():
         #pprint(samples_n)
         [print(i) for i in samples_n]
         print('-------------------End of Report-------------------')
-
-
-    def get_results_df(self):
-        """
-        Get the matching stats for visualization in streamlit
-        """
-        return pd.DataFrame({'reply': self.queries, 'matched_category': self.results_list})
