@@ -5,6 +5,8 @@ from match import Matcher
 
 
 def main():
+    # Set up the sidebar
+    df, threshold, categories = create_sidebar()
     # Prompt user to complete all steps
     if (df is None) or (categories is None):
         st.info('Please complete all steps on the left to start')
@@ -57,28 +59,32 @@ def calculate_ratio(df_result):
     return match_ratio, no_match_ratio
 
 
-# File uploader widget
-file = st.sidebar.file_uploader("STEP 1 - Upload the CSV file:")
-df = get_df(file)
-#st.write(f'df: {df}')
-# Threshold widget
-threshold = st.sidebar.slider(
-    label='STEP 2 - Select the match score threshold:',
-    min_value=50,
-    max_value=100,
-    value=80,
-    step=1
-)
+def create_sidebar():
+    st.sidebar.title('Freetext Reply Matcher')
 
-# Input widget for categories
-#default_categories = {'category_name': ['variant_1', 'variant_2']}
-categories = st.sidebar.text_area(
-    label='STEP 3 - Enter the categories:',
-    value=None,
-    height=500
-)
-categories = ast.literal_eval(categories)
-#st.write(f'categories: {categories}')
+    # File uploader widget
+    file = st.sidebar.file_uploader("STEP 1 - Upload the CSV file:")
+    df = get_df(file)
+    #st.write(f'df: {df}')
+    # Threshold widget
+    threshold = st.sidebar.slider(
+        label='STEP 2 - Select the match score threshold:',
+        min_value=50,
+        max_value=100,
+        value=80,
+        step=1
+    )
+
+    # Input widget for categories
+    #default_categories = {'category_name': ['variant_1', 'variant_2']}
+    categories = st.sidebar.text_area(
+        label='STEP 3 - Enter the categories:',
+        value=None,
+        height=500
+    )
+    categories = ast.literal_eval(categories)
+    #st.write(f'categories: {categories}')
+    return df, threshold, categories
 
 
 if __name__ == "__main__":
