@@ -44,12 +44,13 @@ def get_df(file):
 @st.cache
 def do_matching(df, categories, threshold):
     matcher = Matcher(categories=categories, threshold=threshold)
-    matcher.run(queries=df.reply.values, limit=1)
-    # Create a new column for the matches
-    df_result = df.copy()
-    df_result['matched_category'] = matcher.results_list
-    df_result = df_result[['reply_id', 'reply', 'matched_category']]
-    return df_result
+    match_results = matcher(queries=df.reply.values, limit=3)
+    df_result = pd.DataFrame(
+        data=match_results,
+        index=df.reply_id.values,
+        columns=['matched_category', 'candidate_1', 'candidate_2', 'candidate_3']
+    )
+    return df.copy()[['reply_id', 'reply']].set_index('reply_id').join(df_result)
 
 
 def calculate_ratio(df_result):
