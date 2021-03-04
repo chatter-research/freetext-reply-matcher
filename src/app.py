@@ -1,4 +1,5 @@
 import ast
+import numpy as np
 import pandas as pd
 import streamlit as st
 from match import Matcher
@@ -36,7 +37,9 @@ def get_df(file):
     if file:
         df = pd.read_csv(file)
         # Filter out null values
-        df = df.loc[~df.reply.isnull(), :]
+        df = df.loc[~df.Response.isnull(), :]
+        # Add a dummy reply_id col for table joining
+        df['reply_id'] = np.arange(len(df))
         return df
     return None
 
@@ -44,13 +47,13 @@ def get_df(file):
 @st.cache
 def do_matching(df, categories, threshold):
     matcher = Matcher(categories=categories, threshold=threshold)
-    match_results = matcher(queries=df.reply.values, limit=3)
+    match_results = matcher(queries=df.Response.values, limit=3)
     df_result = pd.DataFrame(
         data=match_results,
         index=df.reply_id.values,
         columns=['matched_category', 'candidate_1', 'candidate_2', 'candidate_3']
     )
-    return df.copy()[['reply_id', 'reply']].set_index('reply_id').join(df_result)
+    return df.copy()[['reply_id', 'Response']].set_index('reply_id').join(df_result)
 
 
 def calculate_ratio(df_result):
